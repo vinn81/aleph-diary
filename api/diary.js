@@ -149,7 +149,16 @@ export default async function handler(request, response) {
       return send(response, 200, { ok: true, date });
     }
 
-    response.setHeader('Allow', 'GET, PUT');
+    if (request.method === 'DELETE') {
+      const date = text(request.body?.date, 10);
+      if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) {
+        throw new ValidationError('올바른 날짜가 필요합니다.');
+      }
+      const deleted = await sql`DELETE FROM diary_days WHERE diary_date = ${date} RETURNING id`;
+      return send(response, 200, { ok: true, date, deleted: deleted.length > 0 });
+    }
+
+    response.setHeader('Allow', 'GET, PUT, DELETE');
     return send(response, 405, { error: '지원하지 않는 요청입니다.' });
   } catch (error) {
     console.error('Diary API error', error);
