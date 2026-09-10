@@ -317,7 +317,8 @@
   <div class="toast" id="toast" role="status"></div>
 
   <script>
-    const STORAGE_KEY = 'plando-diary-draft-v1';
+    const LEGACY_STORAGE_KEY = 'plando-diary-draft-v1';
+    const DRAFT_STORAGE_KEY = 'plan-do-see-unsynced-draft-v1';
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => [...document.querySelectorAll(selector)];
     const pad = (n) => String(n).padStart(2, '0');
@@ -326,18 +327,77 @@
       date: keyOf(new Date()),
       days: {}
     };
-    let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || defaultState;
+    let state = { ...defaultState, days: {} };
     let filter = 'all';
     let calendarCursor = new Date(state.date + 'T00:00:00');
+    let saveQueue = Promise.resolve();
 
     function currentDay() {
       if (!state.days[state.date]) state.days[state.date] = { goal: '', plans: [], review: {} };
       return state.days[state.date];
     }
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || '서버 요청에 실패했습니다.');
+      return payload;
+    }
+    function putDay(date, day) {
+      return requestJson('/api/diary', {
+        method: 'PUT',
+        body: JSON.stringify({ date, day })
+      });
+    }
     function save(message = '저장했습니다') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      showToast(message);
+      const date = state.date;
+      const day = JSON.parse(JSON.stringify(currentDay()));
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(state));
       render();
+      showToast('저장 중…');
+      saveQueue = saveQueue.catch(() => {}).then(() => putDay(date, day)).then(() => {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        showToast(message);
+      }).catch(() => {
+        showToast('기록을 저장하지 못했습니다. 입력 내용은 유지했어요. 다시 시도해 주세요.');
+      });
+      return saveQueue;
+    }
+    async function loadRemote() {
+      showToast('기록을 불러오는 중…');
+      try {
+        const payload = await requestJson('/api/diary');
+        const remoteDays = payload.days || {};
+        let legacy = null;
+        try { legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || 'null'); } catch (_) {}
+        const legacyEntries = Object.entries(legacy?.days || {}).filter(([, day]) => hasContent(day));
+
+        if (!Object.keys(remoteDays).length && legacyEntries.length) {
+          state = { date: legacy.date || defaultState.date, days: legacy.days };
+          render();
+          showToast('기존 기록을 서버로 옮기는 중…');
+          for (const [date, day] of legacyEntries) await putDay(date, day);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          showToast('기존 기록을 Neon DB로 옮겼습니다.');
+          return;
+        }
+
+        state.days = remoteDays;
+        const draft = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || 'null');
+        if (draft?.days?.[state.date]) state.days[state.date] = draft.days[state.date];
+        render();
+        showToast('서버 기록을 불러왔습니다.');
+      } catch (_) {
+        try {
+          const fallback = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'null');
+          if (fallback?.days) state = fallback;
+        } catch (_) {}
+        render();
+        showToast('서버 기록을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.');
+      }
     }
     function showToast(message) {
       const toast = $('#toast'); toast.textContent = message; toast.classList.add('show');
@@ -518,6 +578,7 @@
       }, { signal: lifecycle.signal })).catch(() => {});
     }
     render();
+    loadRemote();
   </script>
 </body>
 </html>
