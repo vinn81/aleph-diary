@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="계획과 실제를 연결해 돌아보는 Plan Do See 다이어리">
+  <title>Plan Do See</title>
+  <style>
+    :root {
+      --ink: #14213d;
+      --ink-2: #263657;
+      --paper: #eef2f9;
+      --white: #ffffff;
+      --line: #dfe5ef;
+      --muted: #6c7891;
+      --lime: #c9ff4a;
+      --blue: #3457f1;
+      --violet: #7447e8;
+      --orange: #ff9d42;
+      --red: #df5361;
+      --shadow: 0 18px 52px rgba(20, 33, 61, .11);
+      font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 78% -10%, rgba(116,71,232,.1), transparent 34%), radial-gradient(circle at 5% 90%, rgba(52,87,241,.08), transparent 30%), var(--paper); font-size: 16px; line-height: 1.55; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid rgba(52,87,241,.3); outline-offset: 2px; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 270px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; padding: 28px 22px; color: white; background: linear-gradient(165deg, #111c35 0%, #1d2d52 68%, #253a67 100%); box-shadow: 12px 0 40px rgba(20,33,61,.12); }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 950; font-size: 1.12rem; letter-spacing: -.02em; }
+    .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; color: var(--ink); background: linear-gradient(145deg, #f5ffd8, var(--lime)); border: 1px solid rgba(255,255,255,.6); border-radius: 13px; font-size: 1.4rem; box-shadow: 0 8px 20px rgba(201,255,74,.18), inset 0 1px 0 white; }
+    .side-label { margin: 44px 10px 10px; color: #9ba8c1; font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .side-nav { display: grid; gap: 7px; }
+    .nav-item { width: 100%; border: 1px solid transparent; border-radius: 13px; padding: 13px 14px; color: #cfd7e7; background: transparent; text-align: left; font-weight: 750; transition: .2s ease; }
+    .nav-item:hover { color: white; background: rgba(255,255,255,.06); }
+    .nav-item.active { color: white; background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.09); box-shadow: inset 3px 0 0 var(--lime); }
+    .side-note { position: absolute; bottom: 24px; left: 22px; right: 22px; padding: 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; color: #bdc8dd; font-size: .84rem; }
+    .main { min-width: 0; max-width: 1500px; width: 100%; margin: 0 auto; padding: 34px clamp(22px, 4vw, 68px) 70px; }
+    .topbar { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+    .eyebrow { display: inline-flex; align-items: center; padding: 5px 9px; color: #2949c6; background: #e3e9ff; border-radius: 999px; font-size: .76rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 3px 0 0; font-size: clamp(1.65rem, 3vw, 2.45rem); line-height: 1.2; letter-spacing: -.045em; }
+    .date-tools { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 13px; color: var(--ink); background: rgba(255,255,255,.9); box-shadow: 0 5px 16px rgba(20,33,61,.06); font-size: 1.35rem; }
+    .today-btn { height: 42px; padding: 0 17px; border: 1px solid var(--line); border-radius: 13px; color: var(--ink); background: rgba(255,255,255,.9); box-shadow: 0 5px 16px rgba(20,33,61,.06); font-weight: 850; }
+    .icon-btn:hover, .today-btn:hover { border-color: #aebbe7; background: white; transform: translateY(-1px); }
+    .goal-card { position: relative; isolation: isolate; overflow: hidden; margin-top: 27px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; padding: 25px 27px; color: white; background: linear-gradient(125deg, #16233f 0%, #263d70 62%, #3c46a8 100%); border: 1px solid rgba(255,255,255,.12); border-radius: 22px; box-shadow: 0 22px 54px rgba(20,33,61,.18); }
+    .goal-card::after { content: ""; position: absolute; z-index: -1; width: 240px; height: 240px; right: -80px; top: -120px; border-radius: 50%; background: rgba(201,255,74,.16); filter: blur(1px); }
+    .field-label { display: block; margin-bottom: 7px; font-size: .82rem; font-weight: 850; }
+    .goal-input { width: 100%; padding: 0; border: 0; outline: none; color: white; background: transparent; font-size: clamp(1.08rem, 2vw, 1.42rem); font-weight: 800; }
+    .goal-input::placeholder { color: #8e9ab2; }
+    .goal-meta { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; color: #dce5f8; background: rgba(255,255,255,.08); border-radius: 999px; font-size: .8rem; font-weight: 750; }
+    .goal-meta::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 4px rgba(201,255,74,.12); }
+    .metrics { margin-top: 17px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .metric { position: relative; overflow: hidden; border: 1px solid rgba(207,216,232,.9); border-radius: 17px; padding: 18px 19px 17px; background: rgba(255,255,255,.88); backdrop-filter: blur(12px); text-align: left; box-shadow: 0 8px 22px rgba(20,33,61,.045); transition: .2s ease; }
+    .metric::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); opacity: .28; }
+    .metric:nth-child(2)::before { background: #60a530; }
+    .metric:nth-child(3)::before { background: var(--orange); }
+    .metric:nth-child(4)::before { background: var(--violet); }
+    .metric:hover, .metric.active { transform: translateY(-3px); border-color: #9eade1; background: white; box-shadow: 0 14px 30px rgba(52,87,241,.13); }
+    .metric.active::before { width: 6px; opacity: 1; }
+    .metric span { display: block; color: var(--muted); font-size: .81rem; font-weight: 800; }
+    .metric strong { display: block; margin-top: 5px; font-size: 1.5rem; letter-spacing: -.04em; }
+    .metric small { color: var(--muted); }
+    .workspace { margin-top: 23px; overflow: hidden; border: 1px solid rgba(207,216,232,.95); border-radius: 22px; background: rgba(255,255,255,.94); box-shadow: var(--shadow); }
+    .tabs { display: flex; align-items: center; gap: 6px; padding: 9px; border-bottom: 1px solid var(--line); background: #f4f6fa; }
+    .tab { position: relative; min-width: 118px; border: 1px solid transparent; border-radius: 12px; padding: 11px 18px; color: var(--muted); background: transparent; font-weight: 900; transition: .2s ease; }
+    .tab:hover { color: var(--ink); background: rgba(255,255,255,.7); }
+    .tab.active { color: white; background: var(--ink); border-color: var(--ink); box-shadow: 0 8px 18px rgba(20,33,61,.18); }
+    .tab-panel { display: none; padding: 24px; }
+    .tab-panel.active { display: block; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+    .panel-title { margin: 0; font-size: 1.15rem; letter-spacing: -.02em; }
+    .panel-caption { margin: 4px 0 0; color: var(--muted); font-size: .88rem; }
+    .primary { border: 0; border-radius: 12px; padding: 11px 17px; color: white; background: linear-gradient(135deg, var(--blue), #624bdc); font-weight: 850; box-shadow: 0 9px 20px rgba(52,87,241,.24); }
+    .primary:hover { filter: brightness(.95); }
+    .plan-list { display: grid; gap: 11px; }
+    .plan-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: #fff; box-shadow: 0 4px 12px rgba(20,33,61,.035); transition: .18s ease; }
+    .plan-row:hover { transform: translateY(-1px); border-color: #b8c3e7; box-shadow: 0 9px 22px rgba(20,33,61,.075); }
+    .check { width: 24px; height: 24px; border: 2px solid #b7c2d4; border-radius: 8px; color: var(--ink); background: white; font-weight: 900; }
+    .plan-row.done .check { border-color: var(--lime); background: var(--lime); }
+    .plan-row.done .plan-name { color: var(--muted); text-decoration: line-through; }
+    .plan-name { font-weight: 850; }
+    .plan-detail { margin-top: 3px; color: var(--muted); font-size: .82rem; }
+    .row-actions { display: flex; align-items: center; gap: 10px; }
+    .status { padding: 6px 10px; border: 1px solid #dbe2ee; border-radius: 999px; color: #304066; background: #edf1f8; font-size: .75rem; font-weight: 850; white-space: nowrap; }
+    .status.done { color: #355800; background: #e9ffc0; }
+    .status.partial { color: #814400; background: #fff0dc; }
+    .text-btn { border: 0; color: var(--blue); background: transparent; font-size: .82rem; font-weight: 850; }
+    .empty { padding: 32px; border: 1px dashed #bdc7d7; border-radius: 14px; color: var(--muted); text-align: center; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .summary-box { padding: 16px; border-radius: 14px; background: #f5f7fb; }
+    .summary-box span { color: var(--muted); font-size: .8rem; font-weight: 800; }
+    .summary-box strong { display: block; margin-top: 3px; font-size: 1.2rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .form-field.full { grid-column: 1 / -1; }
+    input, textarea, select { width: 100%; border: 1px solid #ccd5e3; border-radius: 11px; padding: 11px 12px; color: var(--ink); background: white; outline: none; }
+    input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(44,102,245,.1); }
+    textarea { min-height: 92px; resize: vertical; }
+    .caution { margin: 7px 2px 0; color: #7b6a42; font-size: .76rem; }
+    .save-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+    dialog { width: min(600px, calc(100vw - 28px)); border: 1px solid rgba(255,255,255,.65); border-radius: 22px; padding: 0; color: var(--ink); box-shadow: 0 34px 100px rgba(20,33,61,.36); }
+    dialog::backdrop { background: rgba(11,22,45,.52); backdrop-filter: blur(3px); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font-size: 1.18rem; }
+    .close { width: 34px; height: 34px; border: 0; border-radius: 10px; color: var(--muted); background: #eff2f7; }
+    .dialog-body { padding: 20px 22px 22px; }
+    .toast { position: fixed; right: 24px; bottom: 24px; transform: translateY(20px); padding: 12px 17px; border-radius: 12px; color: white; background: var(--ink); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .25s ease; font-weight: 750; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .mobile-brand { display: none; }
+    .mobile-history { display: none; }
+    .history-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 22px; }
+    .history-count { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; color: #2949c6; background: #e3e9ff; font-size: .8rem; font-weight: 850; }
+    .history-list { display: grid; gap: 16px; }
+    .history-card { overflow: hidden; border: 1px solid rgba(207,216,232,.95); border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 12px 34px rgba(20,33,61,.075); }
+    .history-card-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 21px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #f7f9fd, #eef2ff); }
+    .history-date { margin: 0; font-size: 1.07rem; letter-spacing: -.02em; }
+    .history-goal { margin-top: 3px; color: var(--muted); font-size: .88rem; }
+    .history-stats { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+    .history-chip { padding: 5px 9px; border: 1px solid #d9e0ed; border-radius: 999px; color: #526078; background: white; font-size: .75rem; font-weight: 800; white-space: nowrap; }
+    .history-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+    .history-section { min-width: 0; padding: 18px 20px 20px; }
+    .history-section + .history-section { border-left: 1px solid var(--line); }
+    .history-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: .82rem; color: var(--blue); font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .history-section-title::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .history-item { padding: 10px 0; border-top: 1px solid #edf0f5; }
+    .history-item:first-of-type { padding-top: 0; border-top: 0; }
+    .history-item strong { display: block; font-size: .9rem; }
+    .history-item p { margin: 4px 0 0; color: var(--muted); font-size: .79rem; white-space: pre-wrap; }
+    .history-empty { color: #98a3b6; font-size: .82rem; }
+    .calendar-dialog { width: min(430px, calc(100vw - 28px)); }
+    .calendar-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .calendar-nav { display: flex; gap: 6px; }
+    .calendar-week, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .calendar-week { margin: 4px 0 8px; color: var(--muted); font-size: .75rem; font-weight: 850; text-align: center; }
+    .calendar-day { position: relative; aspect-ratio: 1; border: 1px solid transparent; border-radius: 11px; color: var(--ink); background: transparent; font-size: .88rem; font-weight: 750; }
+    .calendar-day:hover { border-color: #bdc8e9; background: #f3f6ff; }
+    .calendar-day.has-entry::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; transform: translateX(-50%); border-radius: 50%; background: var(--violet); }
+    .calendar-day.today { border-color: #aab9e8; color: var(--blue); }
+    .calendar-day.selected { color: white; background: var(--ink); box-shadow: 0 7px 16px rgba(20,33,61,.2); }
+    .calendar-day.selected::after { background: var(--lime); }
+
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .mobile-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 20px; font-weight: 900; }
+      .mobile-history { display: inline-flex; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .main { padding-top: 20px; }
+      .history-body { grid-template-columns: 1fr; }
+      .history-section + .history-section { border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 620px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .date-tools { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+      .mobile-history { width: 100%; justify-content: center; }
+      .goal-card { grid-template-columns: 1fr; }
+      .goal-meta { text-align: left; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric { padding: 13px; }
+      .tab { min-width: 0; flex: 1; padding-inline: 8px; }
+      .tab-panel { padding: 18px 14px; }
+      .panel-head { align-items: flex-start; }
+      .plan-row { grid-template-columns: auto minmax(0, 1fr); }
+      .row-actions { grid-column: 2; justify-content: space-between; }
+      .summary-grid, .form-grid { grid-template-columns: 1fr; }
+      .form-field.full { grid-column: auto; }
+      .history-head, .history-card-head { align-items: flex-start; flex-direction: column; }
+      .history-stats { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">📔</span><span>Plan Do See</span></div>
+      <div class="side-label">Diary</div>
+      <nav class="side-nav" aria-label="주요 메뉴">
+        <button class="nav-item active" id="diaryBtn">오늘의 기록</button>
+        <button class="nav-item" id="historyBtn">지난 기록</button>
+      </nav>
+      <div class="side-note">계획보다 중요한 건<br><strong>차이를 알아차리는 것</strong></div>
+    </aside>
+
+    <main class="main">
+      <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">📔</span><span>Plan Do See</span></div>
+      <div id="diaryView">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="dateLabel">오늘의 기록</div>
+          <h1 id="displayDate"></h1>
+        </div>
+        <div class="date-tools">
+          <button class="icon-btn" id="prevDate" aria-label="이전 날짜">‹</button>
+          <button class="today-btn" id="todayDate">오늘</button>
+          <button class="icon-btn" id="openCalendar" aria-label="달력에서 날짜 선택">📅</button>
+          <button class="icon-btn" id="nextDate" aria-label="다음 날짜">›</button>
+          <button class="today-btn mobile-history" id="mobileHistoryBtn">지난 기록</button>
+        </div>
+      </header>
+
+      <section class="goal-card">
+        <label>
+          <span class="field-label">오늘의 한 줄 목표</span>
+          <input class="goal-input" id="dailyGoal" placeholder="오늘 꼭 이루고 싶은 한 가지는?" maxlength="90">
+          <div class="caution">민감한 개인정보나 다른 사람의 실명은 입력하지 마세요.</div>
+        </label>
+        <div class="goal-meta" id="goalSaved">아직 작성 전</div>
+      </section>
+
+      <section class="metrics" aria-label="오늘의 요약">
+        <button class="metric active" data-filter="all"><span>전체 계획</span><strong id="metricAll">0개</strong><small>모든 기록 보기</small></button>
+        <button class="metric" data-filter="done"><span>완료</span><strong id="metricDone">0개</strong><small>완료 기록 보기</small></button>
+        <button class="metric" data-filter="open"><span>남은 계획</span><strong id="metricOpen">0개</strong><small>진행할 기록 보기</small></button>
+        <button class="metric" data-filter="time"><span>계획 / 실제</span><strong id="metricTime">0h / 0h</strong><small>시간 차이 보기</small></button>
+      </section>
+
+      <section class="workspace">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="plan" role="tab">Plan</button>
+          <button class="tab" data-tab="do" role="tab">Do</button>
+          <button class="tab" data-tab="see" role="tab">See</button>
+        </div>
+
+        <div class="tab-panel active" id="planPanel" role="tabpanel">
+          <div class="panel-head">
+            <div><h2 class="panel-title">오늘의 계획</h2><p class="panel-caption">완료 기준과 예상 시간을 정해보세요.</p></div>
+            <button class="primary" id="openPlan">+ 계획 추가</button>
+          </div>
+          <div class="plan-list" id="planList"></div>
+        </div>
+
+        <div class="tab-panel" id="doPanel" role="tabpanel">
+          <div class="panel-head">
+            <div><h2 class="panel-title">실제로 한 일</h2><p class="panel-caption">계획과 달라진 지점을 그대로 남겨보세요.</p></div>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-box"><span>예상 시간</span><strong id="doPlanned">0분</strong></div>
+            <div class="summary-box"><span>실제 시간</span><strong id="doActual">0분</strong></div>
+            <div class="summary-box"><span>시간 차이</span><strong id="doGap">0분</strong></div>
+          </div>
+          <div class="plan-list" id="doList"></div>
+        </div>
+
+        <div class="tab-panel" id="seePanel" role="tabpanel">
+          <div class="panel-head">
+            <div><h2 class="panel-title">오늘 돌아보기</h2><p class="panel-caption">차이의 이유를 찾고 다음 행동을 정합니다.</p></div>
+          </div>
+          <div class="form-grid">
+            <label class="form-field"><span class="field-label">계획대로 된 것</span><textarea id="wentWell" placeholder="잘 진행된 일과 이유"></textarea></label>
+            <label class="form-field"><span class="field-label">계획과 달랐던 것</span><textarea id="different" placeholder="예상과 달라진 지점"></textarea></label>
+            <label class="form-field full"><span class="field-label">차이가 난 이유</span><textarea id="reason" placeholder="시간, 난이도, 방해 요소 등을 돌아보세요"></textarea></label>
+            <label class="form-field full"><span class="field-label">다음에 실행할 한 가지</span><input id="nextAction" placeholder="다음 계획에 반영할 구체적인 행동"><div class="caution">공개되어도 괜찮은 내용만 적어주세요.</div></label>
+          </div>
+          <div class="save-row"><button class="primary" id="saveReview">회고 저장</button></div>
+        </div>
+      </section>
+      </div>
+
+      <section id="historyView" hidden>
+        <div class="history-head">
+          <div><div class="eyebrow">Archive</div><h1>지난 기록</h1><p class="panel-caption">지금까지 작성한 Plan · Do · See를 날짜별로 모았습니다.</p></div>
+          <div><span class="history-count" id="historyCount">0일의 기록</span> <button class="today-btn" id="backToDiary">오늘의 기록</button></div>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="planDialog">
+    <form method="dialog" id="planForm">
+      <div class="dialog-head"><h2>새 계획</h2><button class="close" value="cancel" aria-label="닫기">×</button></div>
+      <div class="dialog-body">
+        <div class="form-grid">
+          <label class="form-field full"><span class="field-label">할 일</span><input id="planTitle" required placeholder="구체적인 행동으로 적어주세요"><div class="caution">민감한 개인정보나 다른 사람의 실명은 입력하지 마세요.</div></label>
+          <label class="form-field full"><span class="field-label">완료 기준</span><input id="planCriteria" required placeholder="어디까지 하면 완료인가요?"></label>
+          <label class="form-field"><span class="field-label">예상 시간</span><input id="planMinutes" type="number" required min="5" step="5" value="30"></label>
+          <label class="form-field"><span class="field-label">우선순위</span><select id="planPriority"><option>높음</option><option selected>보통</option><option>낮음</option></select></label>
+        </div>
+        <div class="save-row"><button class="primary" value="default">계획 저장</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="doDialog">
+    <form method="dialog" id="doForm">
+      <div class="dialog-head"><h2>실제 기록</h2><button class="close" value="cancel" aria-label="닫기">×</button></div>
+      <div class="dialog-body">
+        <input type="hidden" id="doId">
+        <div class="form-grid">
+          <label class="form-field"><span class="field-label">상태</span><select id="doStatus"><option value="done">완료</option><option value="partial">일부 완료</option><option value="open">못 함</option></select></label>
+          <label class="form-field"><span class="field-label">실제 시간</span><input id="actualMinutes" type="number" min="0" step="5" value="30"></label>
+          <label class="form-field full"><span class="field-label">실제로 한 일</span><textarea id="actualNote" placeholder="실제로 진행한 범위와 결과"></textarea><div class="caution">공개되어도 괜찮은 내용만 적어주세요.</div></label>
+          <label class="form-field full"><span class="field-label">달라진 점과 이유</span><textarea id="differenceNote" placeholder="계획과 달라진 점, 중단하거나 늦어진 이유"></textarea></label>
+        </div>
+        <div class="save-row"><button class="primary" value="default">실제 기록 저장</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="calendarDialog" class="calendar-dialog">
+    <div class="dialog-head">
+      <div class="calendar-top"><h2 id="calendarMonth"></h2></div>
+      <div class="calendar-nav">
+        <button class="icon-btn" id="calendarPrev" aria-label="이전 달">‹</button>
+        <button class="icon-btn" id="calendarNext" aria-label="다음 달">›</button>
+        <button class="close" id="closeCalendar" aria-label="달력 닫기">×</button>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <div class="calendar-week" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const LEGACY_STORAGE_KEY = 'plando-diary-draft-v1';
+    const DRAFT_STORAGE_KEY = 'plan-do-see-unsynced-draft-v1';
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const pad = (n) => String(n).padStart(2, '0');
+    const keyOf = (date) => `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+    const defaultState = {
+      date: keyOf(new Date()),
+      days: {}
+    };
+    let state = { ...defaultState, days: {} };
+    let filter = 'all';
+    let calendarCursor = new Date(state.date + 'T00:00:00');
+    let saveQueue = Promise.resolve();
+
+    function currentDay() {
+      if (!state.days[state.date]) state.days[state.date] = { goal: '', plans: [], review: {} };
+      return state.days[state.date];
+    }
+    async function requestJson(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || '서버 요청에 실패했습니다.');
+      return payload;
+    }
+    function putDay(date, day) {
+      return requestJson('/api/diary', {
+        method: 'PUT',
+        body: JSON.stringify({ date, day })
+      });
+    }
+    function save(message = '저장했습니다') {
+      const date = state.date;
+      const day = JSON.parse(JSON.stringify(currentDay()));
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(state));
+      render();
+      showToast('저장 중…');
+      saveQueue = saveQueue.catch(() => {}).then(() => putDay(date, day)).then(() => {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        showToast(message);
+      }).catch(() => {
+        showToast('기록을 저장하지 못했습니다. 입력 내용은 유지했어요. 다시 시도해 주세요.');
+      });
+      return saveQueue;
+    }
+    async function loadRemote() {
+      showToast('기록을 불러오는 중…');
+      try {
+        const payload = await requestJson('/api/diary');
+        const remoteDays = payload.days || {};
+        let legacy = null;
+        try { legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || 'null'); } catch (_) {}
+        const legacyEntries = Object.entries(legacy?.days || {}).filter(([, day]) => hasContent(day));
+
+        if (!Object.keys(remoteDays).length && legacyEntries.length) {
+          state = { date: legacy.date || defaultState.date, days: legacy.days };
+          render();
+          showToast('기존 기록을 서버로 옮기는 중…');
+          for (const [date, day] of legacyEntries) await putDay(date, day);
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          showToast('기존 기록을 Neon DB로 옮겼습니다.');
+          return;
+        }
+
+        state.days = remoteDays;
+        const draft = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || 'null');
+        if (draft?.days?.[state.date]) state.days[state.date] = draft.days[state.date];
+        render();
+        showToast('서버 기록을 불러왔습니다.');
+      } catch (_) {
+        try {
+          const fallback = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || 'null');
+          if (fallback?.days) state = fallback;
+        } catch (_) {}
+        render();
+        showToast('서버 기록을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.');
+      }
+    }
+    function showToast(message) {
+      const toast = $('#toast'); toast.textContent = message; toast.classList.add('show');
+      clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove('show'), 1700);
+    }
+    function prettyDate() {
+      const d = new Date(state.date + 'T00:00:00');
+      return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(d);
+    }
+    function timeText(minutes) {
+      if (!minutes) return '0분';
+      const h = Math.floor(minutes/60), m = minutes%60;
+      return `${h ? h+'시간 ' : ''}${m ? m+'분' : ''}`.trim();
+    }
+    function statusText(status) { return status === 'done' ? '완료' : status === 'partial' ? '일부 완료' : '진행 전'; }
+    function hasContent(day = {}) {
+      return Boolean(day.goal || day.plans?.length || Object.values(day.review || {}).some(Boolean));
+    }
+    function fullDate(dateKey) {
+      return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(dateKey + 'T00:00:00'));
+    }
+    function planMarkup(p, doMode = false) {
+      return `<article class="plan-row ${p.status === 'done' ? 'done' : ''}">
+        <button class="check" data-check="${p.id}" aria-label="완료 상태 변경">${p.status === 'done' ? '✓' : ''}</button>
+        <div><div class="plan-name">${escapeHtml(p.title)}</div><div class="plan-detail">완료 기준 · ${escapeHtml(p.criteria)} · 예상 ${timeText(p.minutes)}</div></div>
+        <div class="row-actions"><span class="status ${p.status}">${statusText(p.status)}</span><button class="text-btn" data-do="${p.id}">${doMode ? '기록하기' : '실제 기록'}</button></div>
+      </article>`;
+    }
+    function escapeHtml(value = '') {
+      return value.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+    function render() {
+      const day = currentDay();
+      const plans = day.plans;
+      const done = plans.filter(p => p.status === 'done').length;
+      const planned = plans.reduce((a,p) => a + Number(p.minutes || 0), 0);
+      const actual = plans.reduce((a,p) => a + Number(p.actualMinutes || 0), 0);
+      $('#displayDate').textContent = prettyDate();
+      $('#dailyGoal').value = day.goal || '';
+      $('#goalSaved').textContent = day.goal ? '오늘의 방향을 정했어요' : '아직 작성 전';
+      $('#metricAll').textContent = `${plans.length}개`;
+      $('#metricDone').textContent = `${done}개`;
+      $('#metricOpen').textContent = `${plans.length-done}개`;
+      $('#metricTime').textContent = `${Math.round(planned/60*10)/10}h / ${Math.round(actual/60*10)/10}h`;
+      $('#doPlanned').textContent = timeText(planned);
+      $('#doActual').textContent = timeText(actual);
+      const gap = actual-planned; $('#doGap').textContent = `${gap > 0 ? '+' : ''}${gap}분`;
+      let filtered = plans;
+      if (filter === 'done') filtered = plans.filter(p => p.status === 'done');
+      if (filter === 'open') filtered = plans.filter(p => p.status !== 'done');
+      if (filter === 'time') filtered = plans.filter(p => Number(p.actualMinutes || 0) !== Number(p.minutes || 0));
+      $('#planList').innerHTML = filtered.length ? filtered.map(p => planMarkup(p)).join('') : '<div class="empty">표시할 계획이 없습니다.<br>새 계획을 추가해 하루를 시작해보세요.</div>';
+      $('#doList').innerHTML = plans.length ? plans.map(p => planMarkup(p, true)).join('') : '<div class="empty">먼저 Plan에서 계획을 추가해주세요.</div>';
+      $('#wentWell').value = day.review.wentWell || '';
+      $('#different').value = day.review.different || '';
+      $('#reason').value = day.review.reason || '';
+      $('#nextAction').value = day.review.nextAction || '';
+    }
+    function reviewItem(label, value) {
+      return value ? `<div class="history-item"><strong>${label}</strong><p>${escapeHtml(value)}</p></div>` : '';
+    }
+    function renderHistory() {
+      const entries = Object.entries(state.days).filter(([,day]) => hasContent(day)).sort(([a],[b]) => b.localeCompare(a));
+      $('#historyCount').textContent = `${entries.length}일의 기록`;
+      $('#historyList').innerHTML = entries.length ? entries.map(([date, day]) => {
+        const plans = day.plans || [], done = plans.filter(p => p.status === 'done').length;
+        const planned = plans.reduce((sum,p) => sum + Number(p.minutes || 0), 0);
+        const actual = plans.reduce((sum,p) => sum + Number(p.actualMinutes || 0), 0);
+        const planItems = plans.map(p => `<div class="history-item"><strong>${escapeHtml(p.title)}</strong><p>${statusText(p.status)} · 예상 ${timeText(p.minutes)} · ${escapeHtml(p.criteria || '')}</p></div>`).join('');
+        const doItems = plans.filter(p => p.actualNote || p.differenceNote || p.actualMinutes).map(p => `<div class="history-item"><strong>${escapeHtml(p.title)}</strong><p>실제 ${timeText(p.actualMinutes)}${p.actualNote ? ` · ${escapeHtml(p.actualNote)}` : ''}${p.differenceNote ? `\n차이 · ${escapeHtml(p.differenceNote)}` : ''}</p></div>`).join('');
+        const r = day.review || {};
+        const reviewItems = reviewItem('계획대로 된 것', r.wentWell) + reviewItem('계획과 달랐던 것', r.different) + reviewItem('차이가 난 이유', r.reason) + reviewItem('다음 행동', r.nextAction);
+        return `<article class="history-card">
+          <div class="history-card-head"><div><h2 class="history-date">${fullDate(date)}</h2><div class="history-goal">${escapeHtml(day.goal || '한 줄 목표 미작성')}</div></div>
+          <div class="history-stats"><span class="history-chip">완료 ${done}/${plans.length}</span><span class="history-chip">계획 ${timeText(planned)}</span><span class="history-chip">실제 ${timeText(actual)}</span><button class="text-btn" data-open-date="${date}">이 날짜 열기</button></div></div>
+          <div class="history-body"><section class="history-section"><h3 class="history-section-title">Plan</h3>${planItems || '<div class="history-empty">작성한 계획이 없습니다.</div>'}</section>
+          <section class="history-section"><h3 class="history-section-title">Do</h3>${doItems || '<div class="history-empty">작성한 실제 기록이 없습니다.</div>'}</section>
+          <section class="history-section"><h3 class="history-section-title">See</h3>${reviewItems || '<div class="history-empty">작성한 회고가 없습니다.</div>'}</section></div>
+        </article>`;
+      }).join('') : '<div class="empty">아직 작성된 기록이 없습니다.<br>오늘의 계획부터 시작해보세요.</div>';
+    }
+    function showDiary() {
+      $('#diaryView').hidden = false; $('#historyView').hidden = true;
+      $('#diaryBtn').classList.add('active'); $('#historyBtn').classList.remove('active'); render();
+    }
+    function showHistory() {
+      $('#diaryView').hidden = true; $('#historyView').hidden = false;
+      $('#historyBtn').classList.add('active'); $('#diaryBtn').classList.remove('active'); renderHistory();
+    }
+    function renderCalendar() {
+      const year = calendarCursor.getFullYear(), month = calendarCursor.getMonth();
+      $('#calendarMonth').textContent = `${year}년 ${month + 1}월`;
+      const firstWeekday = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      let cells = Array.from({length:firstWeekday}, () => '<span></span>');
+      for (let day = 1; day <= lastDate; day++) {
+        const date = `${year}-${pad(month+1)}-${pad(day)}`;
+        const classes = ['calendar-day'];
+        if (date === state.date) classes.push('selected');
+        if (date === keyOf(new Date())) classes.push('today');
+        if (hasContent(state.days[date])) classes.push('has-entry');
+        cells.push(`<button class="${classes.join(' ')}" data-calendar-date="${date}" aria-label="${fullDate(date)}">${day}</button>`);
+      }
+      $('#calendarGrid').innerHTML = cells.join('');
+    }
+
+    $$('.tab').forEach(tab => tab.addEventListener('click', () => {
+      $$('.tab, .tab-panel').forEach(el => el.classList.remove('active'));
+      tab.classList.add('active'); $(`#${tab.dataset.tab}Panel`).classList.add('active');
+    }));
+    $$('.metric').forEach(card => card.addEventListener('click', () => {
+      filter = card.dataset.filter; $$('.metric').forEach(x => x.classList.toggle('active', x === card));
+      $$('.tab, .tab-panel').forEach(el => el.classList.remove('active'));
+      $('[data-tab="plan"]').classList.add('active'); $('#planPanel').classList.add('active'); render();
+    }));
+    $('#openPlan').addEventListener('click', () => $('#planDialog').showModal());
+    $('#planForm').addEventListener('submit', (e) => {
+      if (e.submitter?.value === 'cancel') return;
+      e.preventDefault();
+      currentDay().plans.push({ id: Date.now(), title: $('#planTitle').value.trim(), criteria: $('#planCriteria').value.trim(), minutes: Number($('#planMinutes').value), priority: $('#planPriority').value, status: 'open', actualMinutes: 0 });
+      $('#planForm').reset(); $('#planDialog').close(); save('계획을 추가했습니다');
+    });
+    document.addEventListener('click', (e) => {
+      const check = e.target.closest('[data-check]');
+      if (check) { const p = currentDay().plans.find(x => x.id == check.dataset.check); p.status = p.status === 'done' ? 'open' : 'done'; save('상태를 변경했습니다'); }
+      const doBtn = e.target.closest('[data-do]');
+      if (doBtn) { const p = currentDay().plans.find(x => x.id == doBtn.dataset.do); $('#doId').value = p.id; $('#doStatus').value = p.status; $('#actualMinutes').value = p.actualMinutes || p.minutes; $('#actualNote').value = p.actualNote || ''; $('#differenceNote').value = p.differenceNote || ''; $('#doDialog').showModal(); }
+      const openDate = e.target.closest('[data-open-date]');
+      if (openDate) { state.date = openDate.dataset.openDate; filter = 'all'; showDiary(); }
+      const calendarDate = e.target.closest('[data-calendar-date]');
+      if (calendarDate) { state.date = calendarDate.dataset.calendarDate; filter = 'all'; $('#calendarDialog').close(); showDiary(); }
+    });
+    $('#doForm').addEventListener('submit', (e) => {
+      if (e.submitter?.value === 'cancel') return;
+      e.preventDefault(); const p = currentDay().plans.find(x => x.id == $('#doId').value);
+      Object.assign(p, { status: $('#doStatus').value, actualMinutes: Number($('#actualMinutes').value), actualNote: $('#actualNote').value.trim(), differenceNote: $('#differenceNote').value.trim() });
+      $('#doDialog').close(); save('실제 기록을 저장했습니다');
+    });
+    $('#dailyGoal').addEventListener('change', (e) => { currentDay().goal = e.target.value.trim(); save('오늘의 목표를 저장했습니다'); });
+    $('#saveReview').addEventListener('click', () => { currentDay().review = { wentWell: $('#wentWell').value.trim(), different: $('#different').value.trim(), reason: $('#reason').value.trim(), nextAction: $('#nextAction').value.trim() }; save('회고를 저장했습니다'); });
+    function moveDate(amount) { const d = new Date(state.date + 'T00:00:00'); d.setDate(d.getDate()+amount); state.date = keyOf(d); filter = 'all'; showDiary(); }
+    $('#prevDate').addEventListener('click', () => moveDate(-1));
+    $('#nextDate').addEventListener('click', () => moveDate(1));
+    $('#todayDate').addEventListener('click', () => { state.date = keyOf(new Date()); showDiary(); });
+    $('#historyBtn').addEventListener('click', showHistory);
+    $('#mobileHistoryBtn').addEventListener('click', showHistory);
+    $('#diaryBtn').addEventListener('click', showDiary);
+    $('#backToDiary').addEventListener('click', showDiary);
+    $('#openCalendar').addEventListener('click', () => { calendarCursor = new Date(state.date + 'T00:00:00'); renderCalendar(); $('#calendarDialog').showModal(); });
+    $('#closeCalendar').addEventListener('click', () => $('#calendarDialog').close());
+    $('#calendarPrev').addEventListener('click', () => { calendarCursor.setMonth(calendarCursor.getMonth()-1); renderCalendar(); });
+    $('#calendarNext').addEventListener('click', () => { calendarCursor.setMonth(calendarCursor.getMonth()+1); renderCalendar(); });
+
+    if (document.modelContext?.registerTool) {
+      const lifecycle = new AbortController();
+      Promise.resolve(document.modelContext.registerTool({
+        name: 'create_plan',
+        title: '계획 추가',
+        description: '현재 선택된 날짜에 할 일, 완료 기준, 예상 시간을 포함한 계획을 추가합니다.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', minLength: 1 },
+            criteria: { type: 'string', minLength: 1 },
+            minutes: { type: 'number', minimum: 5 },
+            priority: { type: 'string', enum: ['높음', '보통', '낮음'] }
+          },
+          required: ['title', 'criteria', 'minutes'],
+          additionalProperties: false
+        },
+        annotations: { readOnlyHint: false, untrustedContentHint: false },
+        execute(input) {
+          if (!input || typeof input.title !== 'string' || !input.title.trim() || typeof input.criteria !== 'string' || !input.criteria.trim() || !Number.isFinite(input.minutes) || input.minutes < 5) throw new Error('계획 내용과 완료 기준, 5분 이상의 예상 시간이 필요합니다.');
+          const plan = { id: Date.now(), title: input.title.trim(), criteria: input.criteria.trim(), minutes: input.minutes, priority: input.priority || '보통', status: 'open', actualMinutes: 0 };
+          currentDay().plans.push(plan); save('계획을 추가했습니다');
+          return { id: plan.id, date: state.date, status: 'created' };
+        }
+      }, { signal: lifecycle.signal })).catch(() => {});
+    }
+    render();
+    loadRemote();
+  </script>
+</body>
+</html>
