@@ -142,6 +142,15 @@
     .calendar-day.today { border-color: #aab9e8; color: var(--blue); }
     .calendar-day.selected { color: white; background: var(--ink); box-shadow: 0 7px 16px rgba(20,33,61,.2); }
     .calendar-day.selected::after { background: var(--lime); }
+    .auth-shell { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 10%, #d9ff8b 0, transparent 28%), linear-gradient(135deg, #111c35, #3457f1 58%, #ff9d42); }
+    .auth-card { width: min(440px, 100%); padding: 32px; border: 1px solid rgba(255,255,255,.45); border-radius: 22px; background: rgba(255,255,255,.96); box-shadow: 0 28px 80px rgba(11,22,45,.28); }
+    .auth-card h1 { margin: 18px 0 7px; font-size: 2rem; }
+    .auth-card p { margin: 0 0 22px; color: var(--muted); }
+    .auth-form { display: grid; gap: 14px; }
+    .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 5px; }
+    .auth-message { min-height: 1.5em; margin: 12px 0 0 !important; color: var(--red) !important; font-size: .86rem; }
+    .account-bar { display: flex; align-items: center; gap: 12px; margin-top: 20px; color: #bdc8dd; font-size: .83rem; }
+    .account-bar .text-btn { margin-left: auto; color: #f5ffd8; }
 
     @media (max-width: 900px) {
       .shell { grid-template-columns: 1fr; }
@@ -174,7 +183,21 @@
   </style>
 </head>
 <body>
-  <div class="shell">
+  <section class="auth-shell" id="authView">
+    <div class="auth-card">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">📔</span><span>Plan Do See</span></div>
+      <h1>내 기록에 로그인</h1>
+      <p>가입하거나 로그인하면 나의 Plan · Do · See 기록을 볼 수 있습니다.</p>
+      <form class="auth-form" id="authForm">
+        <label class="form-field"><span class="field-label">아이디</span><input id="authUsername" autocomplete="username" required minlength="2" maxlength="80"></label>
+        <label class="form-field"><span class="field-label">비밀번호</span><input id="authPassword" type="password" autocomplete="current-password" required minlength="8" maxlength="200"></label>
+        <div class="auth-actions"><button class="primary" type="submit" data-auth-action="login">로그인</button><button class="today-btn" type="submit" data-auth-action="signup">가입</button></div>
+      </form>
+      <p class="auth-message" id="authMessage" role="alert"></p>
+    </div>
+  </section>
+
+  <div class="shell" id="appShell" hidden>
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">📔</span><span>Plan Do See</span></div>
       <div class="side-label">Diary</div>
@@ -182,7 +205,7 @@
         <button class="nav-item active" id="diaryBtn">오늘의 기록</button>
         <button class="nav-item" id="historyBtn">지난 기록</button>
       </nav>
-      <div class="side-note">계획보다 중요한 건<br><strong>차이를 알아차리는 것</strong></div>
+      <div class="side-note">계획보다 중요한 건<br><strong>차이를 알아차리는 것</strong><div class="account-bar"><span id="accountName"></span><button class="text-btn" id="logoutBtn">로그아웃</button></div></div>
     </aside>
 
     <main class="main">
@@ -341,11 +364,36 @@
     async function requestJson(url, options = {}) {
       const response = await fetch(url, {
         ...options,
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || '서버 요청에 실패했습니다.');
       return payload;
+    }
+    async function authenticate(action) {
+      const message = $('#authMessage');
+      message.textContent = '처리 중…';
+      try {
+        const payload = await requestJson('/api/auth', { method: 'POST', body: JSON.stringify({ action, username: $('#authUsername').value, password: $('#authPassword').value }) });
+        showApp(payload.user.username);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    }
+    function showApp(username) {
+      $('#authView').hidden = true;
+      $('#appShell').hidden = false;
+      $('#accountName').textContent = username;
+      loadRemote();
+    }
+    async function bootAuth() {
+      try {
+        const payload = await requestJson('/api/auth');
+        if (payload.authenticated) showApp(payload.user.username);
+      } catch (error) {
+        $('#authMessage').textContent = '인증 서버에 연결하지 못했습니다.';
+      }
     }
     function putDay(date, day) {
       return requestJson('/api/diary', {
@@ -585,6 +633,10 @@
     $('#closeCalendar').addEventListener('click', () => $('#calendarDialog').close());
     $('#calendarPrev').addEventListener('click', () => { calendarCursor.setMonth(calendarCursor.getMonth()-1); renderCalendar(); });
     $('#calendarNext').addEventListener('click', () => { calendarCursor.setMonth(calendarCursor.getMonth()+1); renderCalendar(); });
+    $('#authForm').addEventListener('submit', (event) => { event.preventDefault(); authenticate(event.submitter?.dataset.authAction || 'login'); });
+    $('#logoutBtn').addEventListener('click', async () => {
+      try { await requestJson('/api/auth', { method: 'POST', body: JSON.stringify({ action: 'logout' }) }); } finally { window.location.reload(); }
+    });
 
     if (document.modelContext?.registerTool) {
       const lifecycle = new AbortController();
@@ -612,8 +664,7 @@
         }
       }, { signal: lifecycle.signal })).catch(() => {});
     }
-    render();
-    loadRemote();
+    bootAuth();
   </script>
 </body>
 </html>

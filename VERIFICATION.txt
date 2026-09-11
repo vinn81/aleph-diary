@@ -1,0 +1,86 @@
+인증 확인 기록
+
+주의
+- 아래 예시의 비밀번호는 실제 값이 아니다. 실행할 때 셸 환경변수로만 넣고 문서나 캡처에는 남기지 않는다.
+- 세션 쿠키와 토큰은 [REDACTED]로 가린다.
+- 배포 주소는 실제 주소로 바꾼다.
+
+환경 변수 예시
+BASE_URL='https://배포주소.example'
+USER_A='소유자A'
+USER_B='소유자B'
+
+1. 로그인 전 기록 화면 차단
+요청:
+curl -i "$BASE_URL/api/diary"
+
+응답에서 확인할 장면:
+HTTP/2 401
+{"error":"로그인이 필요합니다."}
+
+화면에서도 index.html의 로그인 화면이 먼저 보이고, 기록 목록은 보이지 않아야 한다.
+
+2. 가입과 로그인 성공
+요청의 비밀번호는 입력 프롬프트나 환경변수로 넣고 이 파일에는 쓰지 않는다.
+curl -i -c /tmp/diary-a.cookie -X POST "$BASE_URL/api/auth" \
+  -H 'Content-Type: application/json' \
+  --data '{"action":"login","username":"소유자A","password":"[입력값]"}'
+
+응답에서 확인할 장면:
+HTTP/2 200
+Set-Cookie: diary_session=[REDACTED]; HttpOnly; SameSite=Lax
+{"ok":true,"user":{"username":"소유자A"}}
+
+3. 로그인한 사용자 자신의 자료
+요청:
+curl -i -b /tmp/diary-a.cookie "$BASE_URL/api/diary"
+
+응답에서 확인할 장면:
+HTTP/2 200
+{"days":{...소유자A의 날짜만...}}
+
+4. 로그아웃 뒤 같은 값으로 다시 요청
+요청:
+curl -i -b /tmp/diary-a.cookie -X POST "$BASE_URL/api/auth" \
+  -H 'Content-Type: application/json' \
+  --data '{"action":"logout"}'
+curl -i -b /tmp/diary-a.cookie "$BASE_URL/api/diary"
+
+응답에서 확인할 장면:
+HTTP/2 200
+{"ok":true}
+HTTP/2 401
+{"error":"로그인이 필요합니다."}
+
+5. 다른 사용자의 읽기 차단
+소유자A로 기록을 만든 뒤 소유자B로 로그인한다.
+curl -i -c /tmp/diary-b.cookie -X POST "$BASE_URL/api/auth" \
+  -H 'Content-Type: application/json' \
+  --data '{"action":"login","username":"소유자B","password":"[입력값]"}'
+curl -i -b /tmp/diary-b.cookie "$BASE_URL/api/diary"
+
+응답에서 확인할 장면:
+HTTP/2 200
+{"days":{...소유자B의 자료만...}}
+
+A의 날짜나 계획이 B의 목록에 섞이지 않는 것이 읽기 차단의 증거다.
+
+6. 다른 사용자의 수정·삭제 차단
+B가 A의 날짜와 같은 날짜를 PUT/DELETE해도 API에는 user_id가 없으므로 A의 행을 대상으로 삼을 수 없다. B의 쿠키로 아래를 실행한 뒤 A 쿠키로 다시 조회한다.
+curl -i -b /tmp/diary-b.cookie -X PUT "$BASE_URL/api/diary" \
+  -H 'Content-Type: application/json' \
+  --data '{"date":"2026-08-24","day":{"goal":"B의 별도 기록","plans":[],"review":{}}}'
+curl -i -b /tmp/diary-b.cookie -X DELETE "$BASE_URL/api/diary" \
+  -H 'Content-Type: application/json' \
+  --data '{"date":"2026-08-24"}'
+curl -i -b /tmp/diary-a.cookie "$BASE_URL/api/diary"
+
+응답에서 확인할 장면:
+- B의 PUT은 B 소유의 같은 날짜 행만 만들거나 바꾼다.
+- B의 DELETE는 B 소유 행만 삭제한다.
+- 마지막 A 조회에서 A의 기록과 계획이 그대로 남는다.
+- diary.js의 세 SQL 경로 모두 user.id 조건을 포함한다.
+
+실행 상태
+- 로컬에서 npm run check, node --check api/auth.js, git diff --check를 통과했다.
+- 이 작업 환경에는 DATABASE_URL이 없어 위 원격 HTTP 장면 자체는 실행하지 못했다. 배포 후 위 명령의 실제 상태 코드와 응답을 캡처해 이 파일의 '확인할 장면' 아래에 붙인다.

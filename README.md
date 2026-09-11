@@ -4,10 +4,11 @@
 
 ## Neon DB 연결
 
-1. Neon 프로젝트의 **SQL Editor**에서 `db/001_initial.sql` 전체를 실행합니다.
-2. Neon 대시보드의 **Connect**에서 pooled connection string을 복사합니다.
-3. Vercel 프로젝트의 **Settings → Environment Variables**에 `DATABASE_URL`로 등록합니다.
-4. GitHub에 변경 파일을 푸시한 뒤 Vercel에서 재배포합니다.
+1. Neon 프로젝트의 **SQL Editor**에서 `db/SETUP_ALL.sql` 전체를 한 번에 실행합니다. 새 DB와 기존 1단계 DB 모두 사용할 수 있습니다.
+2. 파일에는 인증 스키마와 샘플 기록이 함께 들어 있습니다. 기존 기록은 유지되고, 샘플 기록은 없는 날짜만 추가됩니다.
+3. Neon 대시보드의 **Connect**에서 pooled connection string을 복사합니다.
+4. Vercel 프로젝트의 **Settings → Environment Variables**에 `DATABASE_URL`로 등록합니다.
+5. GitHub에 변경 파일을 푸시한 뒤 Vercel에서 재배포합니다.
 
 `DATABASE_URL`은 Production, Preview, Development 중 사용할 환경에 각각 등록합니다. 실제 연결 문자열은 `.env`나 소스 코드에 커밋하지 않습니다.
 

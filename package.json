@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "check": "node --check api/diary.js"
+    "check": "node --check api/diary.js && node --check api/auth.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1"
