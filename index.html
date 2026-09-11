@@ -362,14 +362,24 @@
       return state.days[state.date];
     }
     async function requestJson(url, options = {}) {
-      const response = await fetch(url, {
-        ...options,
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || '서버 요청에 실패했습니다.');
-      return payload;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(url, {
+          ...options,
+          credentials: 'same-origin',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || '서버 요청에 실패했습니다.');
+        return payload;
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('인증 서버가 12초 안에 응답하지 않았습니다. DATABASE_URL과 DB 설정을 확인해 주세요.');
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
     }
     async function authenticate(action) {
       const message = $('#authMessage');
