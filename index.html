@@ -83,11 +83,13 @@
     .plan-row.done .plan-name { color: var(--muted); text-decoration: line-through; }
     .plan-name { font-weight: 850; }
     .plan-detail { margin-top: 3px; color: var(--muted); font-size: .82rem; }
-    .row-actions { display: flex; align-items: center; gap: 10px; }
+    .row-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .status { padding: 6px 10px; border: 1px solid #dbe2ee; border-radius: 999px; color: #304066; background: #edf1f8; font-size: .75rem; font-weight: 850; white-space: nowrap; }
     .status.done { color: #355800; background: #e9ffc0; }
     .status.partial { color: #814400; background: #fff0dc; }
     .text-btn { border: 0; color: var(--blue); background: transparent; font-size: .82rem; font-weight: 850; }
+    .danger-text { color: var(--red); }
+    .danger-text:hover { color: #b72f3d; text-decoration: underline; }
     .empty { padding: 32px; border: 1px dashed #bdc7d7; border-radius: 14px; color: var(--muted); text-align: center; }
     .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
     .summary-box { padding: 16px; border-radius: 14px; background: #f5f7fb; }
@@ -163,7 +165,7 @@
       .tab-panel { padding: 18px 14px; }
       .panel-head { align-items: flex-start; }
       .plan-row { grid-template-columns: auto minmax(0, 1fr); }
-      .row-actions { grid-column: 2; justify-content: space-between; }
+      .row-actions { grid-column: 2; justify-content: space-between; flex-wrap: wrap; }
       .summary-grid, .form-grid { grid-template-columns: 1fr; }
       .form-field.full { grid-column: auto; }
       .history-head, .history-card-head { align-items: flex-start; flex-direction: column; }
@@ -423,7 +425,7 @@
       return `<article class="plan-row ${p.status === 'done' ? 'done' : ''}">
         <button class="check" data-check="${p.id}" aria-label="완료 상태 변경">${p.status === 'done' ? '✓' : ''}</button>
         <div><div class="plan-name">${escapeHtml(p.title)}</div><div class="plan-detail">완료 기준 · ${escapeHtml(p.criteria)} · 예상 ${timeText(p.minutes)}</div></div>
-        <div class="row-actions"><span class="status ${p.status}">${statusText(p.status)}</span><button class="text-btn" data-do="${p.id}">${doMode ? '기록하기' : '실제 기록'}</button></div>
+        <div class="row-actions"><span class="status ${p.status}">${statusText(p.status)}</span><button class="text-btn" data-do="${p.id}">${doMode ? '기록하기' : '실제 기록'}</button><button class="text-btn danger-text" data-delete-plan="${p.id}">삭제</button></div>
       </article>`;
     }
     function escapeHtml(value = '') {
@@ -472,7 +474,7 @@
         const reviewItems = reviewItem('계획대로 된 것', r.wentWell) + reviewItem('계획과 달랐던 것', r.different) + reviewItem('차이가 난 이유', r.reason) + reviewItem('다음 행동', r.nextAction);
         return `<article class="history-card">
           <div class="history-card-head"><div><h2 class="history-date">${fullDate(date)}</h2><div class="history-goal">${escapeHtml(day.goal || '한 줄 목표 미작성')}</div></div>
-          <div class="history-stats"><span class="history-chip">완료 ${done}/${plans.length}</span><span class="history-chip">계획 ${timeText(planned)}</span><span class="history-chip">실제 ${timeText(actual)}</span><button class="text-btn" data-open-date="${date}">이 날짜 열기</button></div></div>
+          <div class="history-stats"><span class="history-chip">완료 ${done}/${plans.length}</span><span class="history-chip">계획 ${timeText(planned)}</span><span class="history-chip">실제 ${timeText(actual)}</span><button class="text-btn" data-open-date="${date}">이 날짜 열기</button><button class="text-btn danger-text" data-delete-day="${date}">기록 삭제</button></div></div>
           <div class="history-body"><section class="history-section"><h3 class="history-section-title">Plan</h3>${planItems || '<div class="history-empty">작성한 계획이 없습니다.</div>'}</section>
           <section class="history-section"><h3 class="history-section-title">Do</h3>${doItems || '<div class="history-empty">작성한 실제 기록이 없습니다.</div>'}</section>
           <section class="history-section"><h3 class="history-section-title">See</h3>${reviewItems || '<div class="history-empty">작성한 회고가 없습니다.</div>'}</section></div>
@@ -486,6 +488,28 @@
     function showHistory() {
       $('#diaryView').hidden = true; $('#historyView').hidden = false;
       $('#historyBtn').classList.add('active'); $('#diaryBtn').classList.remove('active'); renderHistory();
+    }
+    function clearDraftDate(date) {
+      let draft = null;
+      try { draft = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || 'null'); } catch (_) {}
+      if (!draft?.days?.[date]) return;
+      delete draft.days[date];
+      if (Object.keys(draft.days).length) localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      else localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+    async function deleteDay(date) {
+      if (!confirm('해당 날짜의 Plan · Do · See 기록을 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+      try {
+        await saveQueue;
+        await requestJson('/api/diary', { method: 'DELETE', body: JSON.stringify({ date }) });
+        delete state.days[date];
+        clearDraftDate(date);
+        renderHistory();
+        renderCalendar();
+        showToast('기록을 삭제했습니다');
+      } catch (_) {
+        showToast('기록을 삭제하지 못했습니다. 기존 기록은 유지했어요. 다시 시도해 주세요.');
+      }
     }
     function renderCalendar() {
       const year = calendarCursor.getFullYear(), month = calendarCursor.getMonth();
@@ -521,6 +545,17 @@
       $('#planForm').reset(); $('#planDialog').close(); save('계획을 추가했습니다');
     });
     document.addEventListener('click', (e) => {
+      const deletePlanButton = e.target.closest('[data-delete-plan]');
+      if (deletePlanButton) {
+        const planId = deletePlanButton.dataset.deletePlan;
+        const plan = currentDay().plans.find(item => item.id == planId);
+        if (!plan || !confirm(`"${plan.title}" 계획을 삭제할까요? 연결된 실제 기록도 함께 삭제됩니다.`)) return;
+        currentDay().plans = currentDay().plans.filter(item => item.id != planId);
+        save('계획을 삭제했습니다');
+        return;
+      }
+      const deleteDayButton = e.target.closest('[data-delete-day]');
+      if (deleteDayButton) { deleteDay(deleteDayButton.dataset.deleteDay); return; }
       const check = e.target.closest('[data-check]');
       if (check) { const p = currentDay().plans.find(x => x.id == check.dataset.check); p.status = p.status === 'done' ? 'open' : 'done'; save('상태를 변경했습니다'); }
       const doBtn = e.target.closest('[data-do]');
